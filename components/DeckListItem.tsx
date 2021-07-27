@@ -9,7 +9,7 @@ export const DeckListItem: React.FC<{ deck: Deck }> = ({ deck }) => {
   const { navigate } = useNavigation()
 
   const navigateToGame = () => {
-    navigate("TabTwoScreen", { deck })
+    navigate("TabTwo", { screen: "TabTwoScreen", params: { deck } })
   }
   return (
     <Pressable style={styles.container} onPress={navigateToGame}>
