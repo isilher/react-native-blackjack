@@ -1,39 +1,43 @@
 import { useNavigation } from "@react-navigation/native"
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
+import { useCallback } from "react"
 import { useEffect } from "react"
 import { Alert, Image } from "react-native"
 import { Pressable, StyleSheet } from "react-native"
-import { Deck } from "../types"
+import { FlatList } from "react-native-gesture-handler"
+import { calculateScore } from "../helpers/gameHelper"
+import { Card, Deck } from "../types"
 import { View, Text } from "./Themed"
 
 export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
   const navigation = useNavigation()
-  const [cardsInHand, setCardsInHand] = useState([])
+  const [cardsInHand, setCardsInHand] = useState<Card[]>([])
+  const [houseCards, setHouseCards] = useState<Card[]>([])
   const gameStarted = cardsInHand.length > 0
+
+  const bust = useMemo(() => calculateScore(cardsInHand) > 21, [cardsInHand])
+  const [gameEnded, setGameEnded] = useState(false)
 
   const closeGame = () => {
     navigation.setParams({ deck: undefined })
   }
 
-  const startGame = async () => {
-    // if it has, do nothing
-    if (gameStarted) return Alert.alert("already started!")
-
+  const startNewGame = async () => {
     // if not, shuffle the deck
     await fetch(`http://deckofcardsapi.com/api/deck/${deck.deck_id}/shuffle/`)
 
-    // and draw two cards
+    // and draw two cards for the player
     const response = await fetch(
-      `http://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=2`
+      `http://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=4`
     )
     const { cards } = await response.json()
 
     // add cards to player hand
-    setCardsInHand(cards)
-    console.log(cards)
+    setCardsInHand([cards[0], cards[1]])
+    setHouseCards([cards[2], cards[3]])
   }
 
-  const drawCard = async () => {
+  const drawCard = async (params?: { house: boolean }) => {
     // TODO:  check if the game is in a loading state
 
     // TODO: return when the game was lost
@@ -44,11 +48,30 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
     )
     const { cards } = await response.json()
 
-    // add it to the current state
-    setCardsInHand((currentState) => {
-      return [...currentState, cards[0]]
-    })
+    if (params?.house) {
+      // add it to the current state
+      setHouseCards((currentState) => {
+        return [...currentState, cards[0]]
+      })
+    } else {
+      // add it to the current state
+      setCardsInHand((currentState) => {
+        return [...currentState, cards[0]]
+      })
+    }
   }
+
+  const resolveHouse = async () => {
+    console.log("START")
+    setGameEnded(true)
+  }
+
+  useEffect(() => {
+    if (!gameEnded) return
+    if (calculateScore(houseCards) >= 17) return
+
+    drawCard({ house: true })
+  }, [gameEnded, houseCards])
 
   useEffect(() => {
     const showAlert = () => {
@@ -63,6 +86,35 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
     }
   }, [deck])
 
+  const keyExtractor = useCallback((item, index) => item.code + index, [])
+
+  const renderPlayerCard = useCallback(
+    ({ item }) => (
+      <Image
+        resizeMode="contain"
+        source={{ uri: item.image }}
+        style={styles.cardImage}
+      />
+    ),
+    []
+  )
+
+  const renderHouseCard = useCallback(
+    ({ item, index }) => (
+      <Image
+        resizeMode="contain"
+        source={{
+          uri:
+            index === 0 || bust || gameEnded
+              ? item.image
+              : "https://playingcardstop1000.com/wp-content/uploads/2018/09/PlayingCardsTop1000-Rokoko-romi-Hungary-Card-back.jpg",
+        }}
+        style={styles.cardImage}
+      />
+    ),
+    [bust]
+  )
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Deck {deck.deck_id}</Text>
@@ -73,17 +125,17 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
         darkColor="rgba(255,255,255,0.1)"
       />
 
+      <Text>HOUSE</Text>
       <View style={styles.cardsContainer}>
-        {cardsInHand.map((card) => (
-          <View>
-            <Image
-              resizeMode="contain"
-              source={{ uri: card.image }}
-              style={styles.cardImage}
-            />
-          </View>
-        ))}
+        <FlatList
+          horizontal
+          data={houseCards}
+          renderItem={renderHouseCard}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.handListContentContainer}
+        />
       </View>
+      <Text>Score: {bust || gameEnded ? calculateScore(houseCards) : "?"}</Text>
 
       <View
         style={styles.separator}
@@ -91,14 +143,46 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
         darkColor="rgba(255,255,255,0.1)"
       />
 
-      {gameStarted && (
-        <Pressable onPress={drawCard}>
+      <Text>PLAYER</Text>
+      <View style={styles.cardsContainer}>
+        <FlatList
+          horizontal
+          data={cardsInHand}
+          renderItem={renderPlayerCard}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.handListContentContainer}
+        />
+      </View>
+      <Text>Score: {calculateScore(cardsInHand)}</Text>
+
+      <View
+        style={styles.separator}
+        lightColor="#eee"
+        darkColor="rgba(255,255,255,0.1)"
+      />
+
+      {gameStarted && !bust && (
+        <Pressable onPress={() => drawCard()}>
           <Text style={styles.title}>Gimme a card!</Text>
         </Pressable>
       )}
 
+      {gameStarted && !bust && (
+        <Pressable onPress={resolveHouse}>
+          <Text style={styles.title}>Show em!</Text>
+        </Pressable>
+      )}
+
+      {gameStarted && bust && <Text style={styles.title}>BUST!</Text>}
+
+      {gameStarted && bust && (
+        <Pressable onPress={startNewGame}>
+          <Text style={styles.title}>Restart game</Text>
+        </Pressable>
+      )}
+
       {!gameStarted && (
-        <Pressable onPress={startGame}>
+        <Pressable onPress={startNewGame}>
           <Text style={styles.title}>Start game</Text>
         </Pressable>
       )}
@@ -116,69 +200,6 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
   )
 }
 
-/**
- * NOTE this component is not in use.
- * It was used in lesson 8 to show the difference between a functional and a class component
- * and is comitted so those following the course can check out the code in detail if they wish
- */
-export class CurrentGameAsClass extends React.Component<{
-  deck: Deck
-  navigation: unknown
-}> {
-  static timer: NodeJS.Timeout | undefined = undefined
-  static currentDeck: Deck | undefined = undefined
-
-  static showAlert = () => {
-    Alert.alert("♥️♠️ Your game starts NOW!")
-  }
-
-  componentDidMount() {
-    console.log("Mounted!")
-    CurrentGameAsClass.timer = setTimeout(CurrentGameAsClass.showAlert, 4000)
-  }
-
-  componentWillUnmount() {
-    if (CurrentGameAsClass.timer) {
-      clearTimeout(CurrentGameAsClass.timer)
-    }
-  }
-
-  static getDerivedStateFromProps(props) {
-    if (
-      !!CurrentGameAsClass.currentDeck &&
-      props.deck !== CurrentGameAsClass.currentDeck
-    ) {
-      if (CurrentGameAsClass.timer) {
-        clearTimeout(CurrentGameAsClass.timer)
-      }
-      CurrentGameAsClass.timer = setTimeout(CurrentGameAsClass.showAlert, 4000)
-      CurrentGameAsClass.currentDeck = props.deck
-    }
-
-    return { ...props, id: props.deck.id }
-  }
-
-  render() {
-    const closeGame = () => {
-      this.props.navigation.setParams({ deck: undefined })
-    }
-
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Deck {this.props.deck.deck_id}</Text>
-        <View
-          style={styles.separator}
-          lightColor="#eee"
-          darkColor="rgba(255,255,255,0.1)"
-        />
-        <Pressable onPress={this.closeGame}>
-          <Text style={styles.title}>Close game</Text>
-        </Pressable>
-      </View>
-    )
-  }
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -189,9 +210,13 @@ const styles = StyleSheet.create({
     backgroundColor: "green",
     flexDirection: "row",
   },
+  handListContentContainer: {
+    minWidth: "100%",
+    justifyContent: "center",
+  },
   cardImage: {
     height: 180,
-    margin: 10,
+    marginHorizontal: 10,
     width: 120,
   },
   title: {

@@ -28,6 +28,13 @@ export type Deck = {
   remaining: number
 }
 
+export type Card = {
+  code: string
+  image: string
+  suit: "SPADES" | "HEARTS" | "CLUBS" | "DIAMONDS"
+  value: string
+}
+
 export type DeckState = {
   decks: Deck[]
   loading: boolean
