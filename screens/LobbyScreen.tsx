@@ -8,7 +8,7 @@ import { Text, View } from "../components/Themed"
 import { DeckContext } from "../contexts/DeckContext"
 import { Deck } from "../types"
 
-const TabOneScreen = () => {
+const LobbyScreen = () => {
   const { decks } = useContext(DeckContext)
 
   const renderItem = useCallback(({ item }) => <DeckListItem deck={item} />, [])
@@ -42,4 +42,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default TabOneScreen
+export default LobbyScreen

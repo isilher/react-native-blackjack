@@ -5,7 +5,7 @@ import { CurrentGame } from "../components/CurrentGame"
 import { EmptyGame } from "../components/EmptyGame"
 import { Deck } from "../types"
 
-export default function TabTwoScreen() {
+export default function GameScreen() {
   const route = useRoute()
 
   const deck: Deck | undefined = route.params?.deck

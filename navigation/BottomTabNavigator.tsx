@@ -12,8 +12,8 @@ import { AddDeckButton } from "../components/AddDeckButton"
 import Colors from "../constants/Colors"
 import { DeckProvider } from "../contexts/DeckContext"
 import useColorScheme from "../hooks/useColorScheme"
-import TabOneScreen from "../screens/TabOneScreen"
-import TabTwoScreen from "../screens/TabTwoScreen"
+import LobbyScreen from "../screens/LobbyScreen"
+import GameScreen from "../screens/GameScreen"
 import { BottomTabParamList, TabOneParamList, TabTwoParamList } from "../types"
 
 const BottomTab = createBottomTabNavigator<BottomTabParamList>()
@@ -28,7 +28,7 @@ export default function BottomTabNavigator() {
     >
       <BottomTab.Screen
         name="TabOne"
-        component={TabOneNavigator}
+        component={LobbyNavigator}
         options={{
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="ios-code" color={color} />
@@ -38,11 +38,12 @@ export default function BottomTabNavigator() {
       />
       <BottomTab.Screen
         name="TabTwo"
-        component={TabTwoNavigator}
+        component={GameNavigator}
         options={{
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="ios-code" color={color} />
           ),
+          title: "Game",
         }}
       />
     </BottomTab.Navigator>
@@ -60,35 +61,35 @@ function TabBarIcon(props: {
 
 // Each tab has its own navigation stack, you can read more about this pattern here:
 // https://reactnavigation.org/docs/tab-based-navigation#a-stack-navigator-for-each-tab
-const TabOneStack = createStackNavigator<TabOneParamList>()
+const LobbyStack = createStackNavigator<TabOneParamList>()
 
-function TabOneNavigator() {
+function LobbyNavigator() {
   return (
     <DeckProvider>
-      <TabOneStack.Navigator>
-        <TabOneStack.Screen
-          name="TabOneScreen"
-          component={TabOneScreen}
+      <LobbyStack.Navigator>
+        <LobbyStack.Screen
+          name="LobbyScreen"
+          component={LobbyScreen}
           options={{
             headerTitle: "Lobby",
             headerRight: () => <AddDeckButton />,
           }}
         />
-      </TabOneStack.Navigator>
+      </LobbyStack.Navigator>
     </DeckProvider>
   )
 }
 
-const TabTwoStack = createStackNavigator<TabTwoParamList>()
+const GameStack = createStackNavigator<TabTwoParamList>()
 
-function TabTwoNavigator() {
+function GameNavigator() {
   return (
-    <TabTwoStack.Navigator>
-      <TabTwoStack.Screen
-        name="TabTwoScreen"
-        component={TabTwoScreen}
-        options={{ headerTitle: "Tab Two Title" }}
+    <GameStack.Navigator>
+      <GameStack.Screen
+        name="GameScreen"
+        component={GameScreen}
+        options={{ headerTitle: "Game" }}
       />
-    </TabTwoStack.Navigator>
+    </GameStack.Navigator>
   )
 }

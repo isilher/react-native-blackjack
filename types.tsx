@@ -14,11 +14,11 @@ export type BottomTabParamList = {
 }
 
 export type TabOneParamList = {
-  TabOneScreen: undefined
+  LobbyScreen: undefined
 }
 
 export type TabTwoParamList = {
-  TabTwoScreen: undefined
+  GameScreen: undefined
 }
 
 export type Deck = {
