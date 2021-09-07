@@ -1,28 +1,128 @@
 import { useNavigation } from "@react-navigation/native"
 import React, { useMemo, useState } from "react"
+import { useReducer } from "react"
 import { useCallback } from "react"
 import { useEffect } from "react"
-import { Alert, Image } from "react-native"
+import { ActivityIndicator, Alert, Image } from "react-native"
 import { Pressable, StyleSheet } from "react-native"
 import { FlatList } from "react-native-gesture-handler"
 import { calculateScore } from "../helpers/gameHelper"
 import { Card, Deck } from "../types"
 import { View, Text } from "./Themed"
 
+const DEFAULT_GAME_STATE = {
+  started: false,
+  ended: false,
+  loading: false,
+  houseCards: [],
+  playerCards: [],
+  playerScore: 0,
+  houseScore: 0,
+}
+type TGameState = {
+  started: boolean
+  ended: boolean
+  houseCards: Card[]
+  playerCards: Card[]
+  loading: boolean
+  playerScore: number
+  houseScore: number
+}
+
+const GAME_ACTION_TYPES = {
+  START: "start",
+  END: "end",
+  RESET: "reset",
+  DRAW_SUCCESS: "drawSuccess",
+} as const
+type TGameActionTypeKey = keyof typeof GAME_ACTION_TYPES
+type TGameActionType = typeof GAME_ACTION_TYPES[TGameActionTypeKey]
+type TDrawSuccessPayload = { houseCards?: Card[]; playerCards?: Card[] }
+
+function gameReducer(
+  state: TGameState,
+  action:
+    | { type: Omit<TGameActionType, typeof GAME_ACTION_TYPES.DRAW_SUCCESS> }
+    | {
+        type: typeof GAME_ACTION_TYPES.DRAW_SUCCESS
+        payload: { houseCards?: Card[]; playerCards?: Card[] }
+      }
+): TGameState {
+  switch (action.type) {
+    case GAME_ACTION_TYPES.START:
+      return {
+        ...state,
+        started: true,
+        ended: false,
+        loading: true,
+      }
+    case GAME_ACTION_TYPES.DRAW_SUCCESS: {
+      const { payload } = action as { payload: TDrawSuccessPayload }
+      const newPlayerCards = [
+        ...state.playerCards,
+        ...(payload.playerCards ? payload.playerCards : []),
+      ]
+      const newHouseCards = [
+        ...state.houseCards,
+        ...(payload.houseCards ? payload.houseCards : []),
+      ]
+      const newPlayerScore = calculateScore(newPlayerCards)
+      const newHouseScore = calculateScore(newHouseCards)
+
+      console.log("🐙🐙", newHouseScore)
+
+      return {
+        ...state,
+        loading: false,
+        houseCards: newHouseCards,
+        playerCards: newPlayerCards,
+        houseScore: calculateScore(newHouseCards),
+        playerScore: newPlayerScore,
+        ended: newPlayerScore > 21,
+      }
+    }
+    case GAME_ACTION_TYPES.END:
+      return {
+        ...state,
+        ended: true,
+      }
+    case GAME_ACTION_TYPES.RESET:
+      return {
+        ...state,
+        started: false,
+        ended: false,
+        houseCards: [],
+        playerCards: [],
+        loading: false,
+        playerScore: 0,
+        houseScore: 0,
+      }
+    default:
+      console.log(
+        "Something wrong: game reducer called with unknown action type: ",
+        action.type
+      )
+      return state
+  }
+}
+
 export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
   const navigation = useNavigation()
-  const [cardsInHand, setCardsInHand] = useState<Card[]>([])
-  const [houseCards, setHouseCards] = useState<Card[]>([])
-  const gameStarted = cardsInHand.length > 0
 
-  const bust = useMemo(() => calculateScore(cardsInHand) > 21, [cardsInHand])
-  const [gameEnded, setGameEnded] = useState(false)
+  const [gameState, dispatch] = useReducer(gameReducer, DEFAULT_GAME_STATE)
+  const bust = gameState.playerScore > 21
 
   const closeGame = () => {
     navigation.setParams({ deck: undefined })
   }
 
   const startNewGame = async () => {
+    // Prevent starting in an unready state
+    if (gameState.started) return
+
+    // Set the game state
+    dispatch({ type: GAME_ACTION_TYPES.START })
+
     // if not, shuffle the deck
     await fetch(`http://deckofcardsapi.com/api/deck/${deck.deck_id}/shuffle/`)
 
@@ -33,14 +133,25 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
     const { cards } = await response.json()
 
     // add cards to player hand
-    setCardsInHand([cards[0], cards[1]])
-    setHouseCards([cards[2], cards[3]])
+    dispatch({
+      type: GAME_ACTION_TYPES.DRAW_SUCCESS,
+      payload: {
+        playerCards: [cards[0], cards[1]],
+        houseCards: [cards[2], cards[3]],
+      },
+    })
+  }
+
+  const resetGame = () => {
+    dispatch({ type: GAME_ACTION_TYPES.RESET })
   }
 
   const drawCard = async (params?: { house: boolean }) => {
-    // TODO:  check if the game is in a loading state
+    // check if the game is in a loading state
+    if (gameState.loading) return
 
-    // TODO: return when the game was lost
+    // return when the game was lost
+    if (gameState.ended) return
 
     // fetch a new card
     const response = await fetch(
@@ -50,41 +161,31 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
 
     if (params?.house) {
       // add it to the current state
-      setHouseCards((currentState) => {
-        return [...currentState, cards[0]]
+      console.log(cards)
+      dispatch({
+        type: GAME_ACTION_TYPES.DRAW_SUCCESS,
+        payload: { houseCards: cards },
       })
     } else {
       // add it to the current state
-      setCardsInHand((currentState) => {
-        return [...currentState, cards[0]]
+      dispatch({
+        type: GAME_ACTION_TYPES.DRAW_SUCCESS,
+        payload: { playerCards: cards },
       })
     }
   }
 
   const resolveHouse = async () => {
-    console.log("START")
-    setGameEnded(true)
+    dispatch({ type: GAME_ACTION_TYPES.END })
   }
 
   useEffect(() => {
-    if (!gameEnded) return
-    if (calculateScore(houseCards) >= 17) return
+    if (!gameState.ended) return
+    if (gameState.houseScore >= 17) return // TODO WIN
+    console.log("🐙", gameState.houseScore)
 
     drawCard({ house: true })
-  }, [gameEnded, houseCards])
-
-  useEffect(() => {
-    const showAlert = () => {
-      // Disabled in development
-      // Alert.alert("♥️♠️ Your game starts NOW!")
-    }
-
-    const timer = setTimeout(showAlert, 4000)
-
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [deck])
+  }, [gameState.ended, gameState.houseScore])
 
   const keyExtractor = useCallback((item, index) => item.code + index, [])
 
@@ -100,20 +201,28 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
   )
 
   const renderHouseCard = useCallback(
-    ({ item, index }) => (
-      <Image
-        resizeMode="contain"
-        source={{
-          uri:
-            index === 0 || bust || gameEnded
-              ? item.image
-              : "https://playingcardstop1000.com/wp-content/uploads/2018/09/PlayingCardsTop1000-Rokoko-romi-Hungary-Card-back.jpg",
-        }}
-        style={styles.cardImage}
-      />
-    ),
-    [bust]
+    ({ item, index }) =>
+      index === 0 || gameState.ended ? (
+        <Image
+          resizeMode="contain"
+          source={{
+            uri: item.image,
+          }}
+          style={styles.cardImage}
+        />
+      ) : (
+        <Image
+          resizeMode="contain"
+          source={{
+            uri: "https://playingcardstop1000.com/wp-content/uploads/2018/09/PlayingCardsTop1000-Rokoko-romi-Hungary-Card-back.jpg",
+          }}
+          style={styles.cardImage}
+        />
+      ),
+    [gameState.ended]
   )
+
+  if (gameState.loading) return <ActivityIndicator />
 
   return (
     <View style={styles.container}>
@@ -129,13 +238,13 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
       <View style={styles.cardsContainer}>
         <FlatList
           horizontal
-          data={houseCards}
+          data={gameState.houseCards}
           renderItem={renderHouseCard}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.handListContentContainer}
         />
       </View>
-      <Text>Score: {bust || gameEnded ? calculateScore(houseCards) : "?"}</Text>
+      <Text>Score: {gameState.ended ? gameState.houseScore : "?"}</Text>
 
       <View
         style={styles.separator}
@@ -147,13 +256,13 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
       <View style={styles.cardsContainer}>
         <FlatList
           horizontal
-          data={cardsInHand}
+          data={gameState.playerCards}
           renderItem={renderPlayerCard}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.handListContentContainer}
         />
       </View>
-      <Text>Score: {calculateScore(cardsInHand)}</Text>
+      <Text>Score: {gameState.playerScore}</Text>
 
       <View
         style={styles.separator}
@@ -161,27 +270,27 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
         darkColor="rgba(255,255,255,0.1)"
       />
 
-      {gameStarted && !bust && (
+      {gameState.started && !gameState.ended && (
         <Pressable onPress={() => drawCard()}>
           <Text style={styles.title}>Gimme a card!</Text>
         </Pressable>
       )}
 
-      {gameStarted && !bust && (
+      {gameState.started && !gameState.ended && (
         <Pressable onPress={resolveHouse}>
           <Text style={styles.title}>Show em!</Text>
         </Pressable>
       )}
 
-      {gameStarted && bust && <Text style={styles.title}>BUST!</Text>}
+      {gameState.started && bust && <Text style={styles.title}>BUST!</Text>}
 
-      {gameStarted && bust && (
-        <Pressable onPress={startNewGame}>
-          <Text style={styles.title}>Restart game</Text>
+      {gameState.ended && (
+        <Pressable onPress={resetGame}>
+          <Text style={styles.title}>Reset game</Text>
         </Pressable>
       )}
 
-      {!gameStarted && (
+      {!gameState.started && (
         <Pressable onPress={startNewGame}>
           <Text style={styles.title}>Start game</Text>
         </Pressable>
