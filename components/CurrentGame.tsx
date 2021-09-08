@@ -18,6 +18,7 @@ const DEFAULT_GAME_STATE = {
   playerCards: [],
   playerScore: 0,
   houseScore: 0,
+  result: "",
 }
 type TGameState = {
   started: boolean
@@ -27,6 +28,7 @@ type TGameState = {
   loading: boolean
   playerScore: number
   houseScore: number
+  result: string
 }
 
 const GAME_ACTION_TYPES = {
@@ -34,6 +36,7 @@ const GAME_ACTION_TYPES = {
   END: "end",
   RESET: "reset",
   DRAW_SUCCESS: "drawSuccess",
+  CONCLUDE: "conclude",
 } as const
 type TGameActionTypeKey = keyof typeof GAME_ACTION_TYPES
 type TGameActionType = typeof GAME_ACTION_TYPES[TGameActionTypeKey]
@@ -55,6 +58,7 @@ function gameReducer(
         started: true,
         ended: false,
         loading: true,
+        result: "",
       }
     case GAME_ACTION_TYPES.DRAW_SUCCESS: {
       const { payload } = action as { payload: TDrawSuccessPayload }
@@ -66,10 +70,6 @@ function gameReducer(
         ...state.houseCards,
         ...(payload.houseCards ? payload.houseCards : []),
       ]
-      const newPlayerScore = calculateScore(newPlayerCards)
-      const newHouseScore = calculateScore(newHouseCards)
-
-      console.log("🐙🐙", newHouseScore)
 
       return {
         ...state,
@@ -77,8 +77,7 @@ function gameReducer(
         houseCards: newHouseCards,
         playerCards: newPlayerCards,
         houseScore: calculateScore(newHouseCards),
-        playerScore: newPlayerScore,
-        ended: newPlayerScore > 21,
+        playerScore: calculateScore(newPlayerCards),
       }
     }
     case GAME_ACTION_TYPES.END:
@@ -96,7 +95,19 @@ function gameReducer(
         loading: false,
         playerScore: 0,
         houseScore: 0,
+        result: "",
       }
+    case GAME_ACTION_TYPES.CONCLUDE: {
+      const houseBust = state.houseScore > 21
+      const playerBust = state.playerScore > 21
+      const playerHigher = state.playerScore > state.houseScore
+
+      return {
+        ...state,
+        result:
+          playerBust || (!houseBust && !playerHigher) ? "YOU LOSE" : "YOU WIN",
+      }
+    }
     default:
       console.log(
         "Something wrong: game reducer called with unknown action type: ",
@@ -150,9 +161,6 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
     // check if the game is in a loading state
     if (gameState.loading) return
 
-    // return when the game was lost
-    if (gameState.ended) return
-
     // fetch a new card
     const response = await fetch(
       `http://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=1`
@@ -161,7 +169,6 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
 
     if (params?.house) {
       // add it to the current state
-      console.log(cards)
       dispatch({
         type: GAME_ACTION_TYPES.DRAW_SUCCESS,
         payload: { houseCards: cards },
@@ -181,11 +188,18 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
 
   useEffect(() => {
     if (!gameState.ended) return
-    if (gameState.houseScore >= 17) return // TODO WIN
-    console.log("🐙", gameState.houseScore)
+    if (gameState.houseScore >= 17) {
+      if (!gameState.result) dispatch({ type: GAME_ACTION_TYPES.CONCLUDE })
+      return
+    }
 
     drawCard({ house: true })
   }, [gameState.ended, gameState.houseScore])
+
+  useEffect(() => {
+    if (gameState.ended) return
+    if (gameState.playerScore > 21) dispatch({ type: GAME_ACTION_TYPES.END })
+  }, [gameState.ended, gameState.playerScore])
 
   const keyExtractor = useCallback((item, index) => item.code + index, [])
 
@@ -245,6 +259,17 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
         />
       </View>
       <Text>Score: {gameState.ended ? gameState.houseScore : "?"}</Text>
+
+      {!!gameState.result && (
+        <View>
+          <View
+            style={styles.separator}
+            lightColor="#eee"
+            darkColor="rgba(255,255,255,0.1)"
+          />
+          <Text>{gameState.result}</Text>
+        </View>
+      )}
 
       <View
         style={styles.separator}
