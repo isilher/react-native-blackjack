@@ -15,11 +15,14 @@ import useColorScheme from "../hooks/useColorScheme"
 import LobbyScreen from "../screens/LobbyScreen"
 import GameScreen from "../screens/GameScreen"
 import { BottomTabParamList, TabOneParamList, TabTwoParamList } from "../types"
+import { useSelector } from "react-redux"
+import { selectStarted } from "../reducers/gameReducer"
 
 const BottomTab = createBottomTabNavigator<BottomTabParamList>()
 
 export default function BottomTabNavigator() {
   const colorScheme = useColorScheme()
+  const gameStarted = useSelector(selectStarted)
 
   return (
     <BottomTab.Navigator
@@ -43,7 +46,7 @@ export default function BottomTabNavigator() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="ios-code" color={color} />
           ),
-          title: "Game",
+          title: !gameStarted ? "New Game" : "Current Game",
         }}
       />
     </BottomTab.Navigator>

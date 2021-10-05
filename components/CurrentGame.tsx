@@ -1,126 +1,20 @@
 import { useNavigation } from "@react-navigation/native"
-import React, { useMemo, useState } from "react"
-import { useReducer } from "react"
+import React from "react"
 import { useCallback } from "react"
 import { useEffect } from "react"
-import { ActivityIndicator, Alert, Image } from "react-native"
+import { ActivityIndicator, Image } from "react-native"
 import { Pressable, StyleSheet } from "react-native"
 import { FlatList } from "react-native-gesture-handler"
-import { calculateScore } from "../helpers/gameHelper"
-import { Card, Deck } from "../types"
+import { ICurrentGameProps } from "../types"
 import { View, Text } from "./Themed"
+import { useDispatch, useSelector } from "react-redux"
+import { GAME_ACTION_TYPES, selectGameState } from "../reducers/gameReducer"
 
-const DEFAULT_GAME_STATE = {
-  started: false,
-  ended: false,
-  loading: false,
-  houseCards: [],
-  playerCards: [],
-  playerScore: 0,
-  houseScore: 0,
-  result: "",
-}
-type TGameState = {
-  started: boolean
-  ended: boolean
-  houseCards: Card[]
-  playerCards: Card[]
-  loading: boolean
-  playerScore: number
-  houseScore: number
-  result: string
-}
-
-const GAME_ACTION_TYPES = {
-  START: "start",
-  END: "end",
-  RESET: "reset",
-  DRAW_SUCCESS: "drawSuccess",
-  CONCLUDE: "conclude",
-} as const
-type TGameActionTypeKey = keyof typeof GAME_ACTION_TYPES
-type TGameActionType = typeof GAME_ACTION_TYPES[TGameActionTypeKey]
-type TDrawSuccessPayload = { houseCards?: Card[]; playerCards?: Card[] }
-
-function gameReducer(
-  state: TGameState,
-  action:
-    | { type: Omit<TGameActionType, typeof GAME_ACTION_TYPES.DRAW_SUCCESS> }
-    | {
-        type: typeof GAME_ACTION_TYPES.DRAW_SUCCESS
-        payload: { houseCards?: Card[]; playerCards?: Card[] }
-      }
-): TGameState {
-  switch (action.type) {
-    case GAME_ACTION_TYPES.START:
-      return {
-        ...state,
-        started: true,
-        ended: false,
-        loading: true,
-        result: "",
-      }
-    case GAME_ACTION_TYPES.DRAW_SUCCESS: {
-      const { payload } = action as { payload: TDrawSuccessPayload }
-      const newPlayerCards = [
-        ...state.playerCards,
-        ...(payload.playerCards ? payload.playerCards : []),
-      ]
-      const newHouseCards = [
-        ...state.houseCards,
-        ...(payload.houseCards ? payload.houseCards : []),
-      ]
-
-      return {
-        ...state,
-        loading: false,
-        houseCards: newHouseCards,
-        playerCards: newPlayerCards,
-        houseScore: calculateScore(newHouseCards),
-        playerScore: calculateScore(newPlayerCards),
-      }
-    }
-    case GAME_ACTION_TYPES.END:
-      return {
-        ...state,
-        ended: true,
-      }
-    case GAME_ACTION_TYPES.RESET:
-      return {
-        ...state,
-        started: false,
-        ended: false,
-        houseCards: [],
-        playerCards: [],
-        loading: false,
-        playerScore: 0,
-        houseScore: 0,
-        result: "",
-      }
-    case GAME_ACTION_TYPES.CONCLUDE: {
-      const houseBust = state.houseScore > 21
-      const playerBust = state.playerScore > 21
-      const playerHigher = state.playerScore > state.houseScore
-
-      return {
-        ...state,
-        result:
-          playerBust || (!houseBust && !playerHigher) ? "YOU LOSE" : "YOU WIN",
-      }
-    }
-    default:
-      console.log(
-        "Something wrong: game reducer called with unknown action type: ",
-        action.type
-      )
-      return state
-  }
-}
-
-export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
+export const CurrentGame: React.FC<ICurrentGameProps> = ({ deck }) => {
   const navigation = useNavigation()
+  const gameState = useSelector(selectGameState)
+  const dispatch = useDispatch()
 
-  const [gameState, dispatch] = useReducer(gameReducer, DEFAULT_GAME_STATE)
   const bust = gameState.playerScore > 21
 
   const closeGame = () => {
@@ -131,25 +25,10 @@ export const CurrentGame: React.FC<{ deck: Deck }> = ({ deck }) => {
     // Prevent starting in an unready state
     if (gameState.started) return
 
-    // Set the game state
-    dispatch({ type: GAME_ACTION_TYPES.START })
-
-    // if not, shuffle the deck
-    await fetch(`http://deckofcardsapi.com/api/deck/${deck.deck_id}/shuffle/`)
-
-    // and draw two cards for the player
-    const response = await fetch(
-      `http://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=4`
-    )
-    const { cards } = await response.json()
-
-    // add cards to player hand
+    // Trigger a new game saga
     dispatch({
-      type: GAME_ACTION_TYPES.DRAW_SUCCESS,
-      payload: {
-        playerCards: [cards[0], cards[1]],
-        houseCards: [cards[2], cards[3]],
-      },
+      type: GAME_ACTION_TYPES.START,
+      payload: { deck_id: deck.deck_id },
     })
   }
 

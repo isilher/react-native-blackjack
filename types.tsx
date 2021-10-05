@@ -3,6 +3,8 @@
  * https://reactnavigation.org/docs/typescript/
  */
 
+import { GAME_ACTION_TYPES } from "./reducers/gameReducer"
+
 export type RootStackParamList = {
   Root: undefined
   NotFound: undefined
@@ -39,4 +41,22 @@ export type DeckState = {
   decks: Deck[]
   loading: boolean
   addDeck: (deck: Deck) => void
+}
+
+export type TGameState = {
+  started: boolean
+  ended: boolean
+  houseCards: Card[]
+  playerCards: Card[]
+  loading: boolean
+  playerScore: number
+  houseScore: number
+  result: string
+}
+export type TGameActionTypeKey = keyof typeof GAME_ACTION_TYPES
+export type TGameActionType = typeof GAME_ACTION_TYPES[TGameActionTypeKey]
+export type TDrawSuccessPayload = { houseCards?: Card[]; playerCards?: Card[] }
+
+export interface ICurrentGameProps {
+  deck: Deck
 }
