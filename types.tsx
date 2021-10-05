@@ -52,10 +52,12 @@ export type TGameState = {
   playerScore: number
   houseScore: number
   result: string
+  deck: Deck | undefined
 }
 export type TGameActionTypeKey = keyof typeof GAME_ACTION_TYPES
 export type TGameActionType = typeof GAME_ACTION_TYPES[TGameActionTypeKey]
 export type TDrawSuccessPayload = { houseCards?: Card[]; playerCards?: Card[] }
+export type TOpenGamePayload = { deck: Deck }
 
 export interface ICurrentGameProps {
   deck: Deck

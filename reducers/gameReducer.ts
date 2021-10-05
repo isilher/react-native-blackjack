@@ -4,9 +4,11 @@ import { calculateScore } from "../helpers/gameHelper"
 import { gameSaga } from "../sagas/gameSaga"
 import {
   Card,
+  Deck,
   TDrawSuccessPayload,
   TGameActionType,
   TGameState,
+  TOpenGamePayload,
 } from "../types"
 
 const DEFAULT_GAME_STATE = {
@@ -18,6 +20,7 @@ const DEFAULT_GAME_STATE = {
   playerScore: 0,
   houseScore: 0,
   result: "",
+  deck: undefined,
 }
 
 export enum GAME_ACTION_TYPES {
@@ -26,6 +29,8 @@ export enum GAME_ACTION_TYPES {
   RESET = "reset",
   DRAW_SUCCESS = "drawSuccess",
   CONCLUDE = "conclude",
+  OPEN_GAME = "open",
+  CLOSE_GAME = "close",
 }
 
 export function gameReducer(
@@ -35,6 +40,10 @@ export function gameReducer(
     | {
         type: typeof GAME_ACTION_TYPES.DRAW_SUCCESS
         payload: { houseCards?: Card[]; playerCards?: Card[] }
+      }
+    | {
+        type: typeof GAME_ACTION_TYPES.OPEN_GAME
+        payload: { deck: Deck }
       }
 ): TGameState {
   switch (action.type) {
@@ -95,6 +104,18 @@ export function gameReducer(
           playerBust || (!houseBust && !playerHigher) ? "YOU LOSE" : "YOU WIN",
       }
     }
+    case GAME_ACTION_TYPES.OPEN_GAME:
+      const { payload } = action as { payload: TOpenGamePayload }
+      return {
+        // Keep the game state if the current game is opened again, otherwise reset it
+        ...(payload.deck === state.deck ? state : DEFAULT_GAME_STATE),
+        deck: payload.deck,
+      }
+    case GAME_ACTION_TYPES.CLOSE_GAME:
+      return {
+        ...state,
+        deck: undefined,
+      }
     default:
       console.log(
         "Something wrong: game reducer called with unknown action type: ",
@@ -115,3 +136,5 @@ sagaMiddleware.run(gameSaga)
 export const selectGameState = (state: TGameState) => state
 
 export const selectStarted = (state: TGameState) => state.started
+
+export const selectDeck = (state: TGameState) => state.deck

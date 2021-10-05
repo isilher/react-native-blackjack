@@ -1,24 +1,28 @@
 import { useNavigation } from "@react-navigation/native"
-import React from "react"
-import { useCallback } from "react"
-import { useEffect } from "react"
-import { ActivityIndicator, Image } from "react-native"
+import React, { useEffect, useCallback } from "react"
+import { ActivityIndicator, Image, FlatList, ScrollView } from "react-native"
 import { Pressable, StyleSheet } from "react-native"
-import { FlatList } from "react-native-gesture-handler"
 import { ICurrentGameProps } from "../types"
 import { View, Text } from "./Themed"
 import { useDispatch, useSelector } from "react-redux"
-import { GAME_ACTION_TYPES, selectGameState } from "../reducers/gameReducer"
+import {
+  GAME_ACTION_TYPES,
+  selectDeck,
+  selectGameState,
+} from "../reducers/gameReducer"
 
-export const CurrentGame: React.FC<ICurrentGameProps> = ({ deck }) => {
-  const navigation = useNavigation()
+export const CurrentGame: React.FC<ICurrentGameProps> = () => {
   const gameState = useSelector(selectGameState)
   const dispatch = useDispatch()
+
+  const deck = useSelector(selectDeck)
+
+  console.log("🎈", deck?.deck_id)
 
   const bust = gameState.playerScore > 21
 
   const closeGame = () => {
-    navigation.setParams({ deck: undefined })
+    dispatch({ type: GAME_ACTION_TYPES.CLOSE_GAME })
   }
 
   const startNewGame = async () => {
@@ -28,7 +32,7 @@ export const CurrentGame: React.FC<ICurrentGameProps> = ({ deck }) => {
     // Trigger a new game saga
     dispatch({
       type: GAME_ACTION_TYPES.START,
-      payload: { deck_id: deck.deck_id },
+      payload: { deck_id: deck?.deck_id },
     })
   }
 
@@ -118,8 +122,11 @@ export const CurrentGame: React.FC<ICurrentGameProps> = ({ deck }) => {
   if (gameState.loading) return <ActivityIndicator />
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Deck {deck.deck_id}</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
+      <Text style={styles.title}>Deck {deck?.deck_id}</Text>
 
       <View
         style={styles.separator}
@@ -209,13 +216,15 @@ export const CurrentGame: React.FC<ICurrentGameProps> = ({ deck }) => {
       <Pressable onPress={closeGame}>
         <Text style={styles.title}>Close game</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
     alignItems: "center",
     justifyContent: "center",
   },

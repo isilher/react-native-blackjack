@@ -1,5 +1,5 @@
-import { call, put, takeEvery, takeLatest } from "redux-saga/effects"
-import { apiShuffleDeck } from "../api/deckApi"
+import { call, put, takeEvery } from "redux-saga/effects"
+import { apiDrawCards, apiShuffleDeck } from "../api/deckApi"
 import { GAME_ACTION_TYPES } from "../reducers/gameReducer"
 import { Deck } from "../types"
 
@@ -7,6 +7,7 @@ function* resetDeck(action: {
   type: typeof GAME_ACTION_TYPES.START
   payload: { deck_id: Deck["deck_id"] }
 }) {
+  console.log("🤔", action)
   try {
     // First, reshuffle the deck for a fresh game
     yield call(apiShuffleDeck, action.payload.deck_id)
