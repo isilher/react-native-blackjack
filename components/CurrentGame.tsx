@@ -5,11 +5,8 @@ import { Pressable, StyleSheet } from "react-native"
 import { ICurrentGameProps } from "../types"
 import { View, Text } from "./Themed"
 import { useDispatch, useSelector } from "react-redux"
-import {
-  GAME_ACTION_TYPES,
-  selectDeck,
-  selectGameState,
-} from "../reducers/gameReducer"
+import { selectDeck, selectGameState } from "../reducers/gameReducer"
+import { GAME_ACTION_TYPES } from "../reducers/gameActions"
 
 export const CurrentGame: React.FC<ICurrentGameProps> = () => {
   const gameState = useSelector(selectGameState)

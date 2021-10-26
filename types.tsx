@@ -3,7 +3,7 @@
  * https://reactnavigation.org/docs/typescript/
  */
 
-import { GAME_ACTION_TYPES } from "./reducers/gameReducer"
+import { GAME_ACTION_TYPES } from "./reducers/gameActions"
 
 export type RootStackParamList = {
   Root: undefined

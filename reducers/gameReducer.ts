@@ -10,6 +10,7 @@ import {
   TGameState,
   TOpenGamePayload,
 } from "../types"
+import { GAME_ACTION_TYPES } from "./gameActions"
 
 const DEFAULT_GAME_STATE = {
   started: false,
@@ -21,16 +22,6 @@ const DEFAULT_GAME_STATE = {
   houseScore: 0,
   result: "",
   deck: undefined,
-}
-
-export enum GAME_ACTION_TYPES {
-  START = "start",
-  END = "end",
-  RESET = "reset",
-  DRAW_SUCCESS = "drawSuccess",
-  CONCLUDE = "conclude",
-  OPEN_GAME = "open",
-  CLOSE_GAME = "close",
 }
 
 export function gameReducer(

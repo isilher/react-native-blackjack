@@ -3,7 +3,7 @@ import React from "react"
 import { Dimensions, Pressable } from "react-native"
 import { StyleSheet } from "react-native"
 import { useDispatch } from "react-redux"
-import { GAME_ACTION_TYPES } from "../reducers/gameReducer"
+import { GAME_ACTION_TYPES } from "../reducers/gameActions"
 import { Deck } from "../types"
 import { View, Text } from "./Themed"
 

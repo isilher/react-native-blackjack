@@ -1,6 +1,6 @@
 import { call, put, takeEvery } from "redux-saga/effects"
 import { apiDrawCards, apiShuffleDeck } from "../api/deckApi"
-import { GAME_ACTION_TYPES } from "../reducers/gameReducer"
+import { GAME_ACTION_TYPES } from "../reducers/gameActions"
 import { Deck } from "../types"
 
 function* resetDeck(action: {
