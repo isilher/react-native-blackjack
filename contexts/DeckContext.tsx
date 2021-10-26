@@ -1,5 +1,7 @@
 import React, { useState } from "react"
 import { Deck, DeckState } from "../types"
+import * as Notifications from "expo-notifications"
+import { Alert, Linking } from "react-native"
 
 export const DeckContext = React.createContext<DeckState>({
   decks: [],
@@ -26,13 +28,45 @@ export const DeckProvider: React.FC = ({ children }) => {
       )
       const newDeck = (await response.json()) as Deck
 
+      const permissionResult = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowAnnouncements: true,
+        },
+      })
+
+      if (!permissionResult.granted)
+        Alert.alert(
+          "You didn`t choose to enable notifications, you might miss your game!"
+        )
+
+      setTimeout(() => {
+        addDeck(newDeck)
+        setLoading(false)
+      }, 5000)
+
+      const url = await Linking.getInitialURL()
+      const baseUrl = url?.split("/--")[0]
+
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Your game has started!",
+          body: "Click to start playing now.",
+          data: {
+            url: `${baseUrl}/--/gameTab`,
+            deck: newDeck,
+          },
+        },
+        trigger: {
+          seconds: 5,
+        },
+      })
+
       // Add
-      addDeck(newDeck)
     } catch (error) {
       console.error(error)
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
