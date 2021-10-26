@@ -56,11 +56,16 @@ export const DeckProvider: React.FC = ({ children }) => {
             url: `${baseUrl}/--/gameTab`,
             deck: newDeck,
           },
+          categoryIdentifier: "newGameReady",
         },
         trigger: {
           seconds: 5,
         },
       })
+
+      Notifications.setNotificationCategoryAsync("newGameReady", [
+        { identifier: "autostart", buttonTitle: "Letsgo!" },
+      ])
 
       // Add
     } catch (error) {

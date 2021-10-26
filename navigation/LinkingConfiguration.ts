@@ -57,13 +57,27 @@ export default {
     // Listen to expo push notifications
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const { url, deck } = response.notification.request.content.data
+        const url = response.notification.request.content.data.url as string
 
-        // Any custom logic to see whether the URL needs to be handled
-        gameStore.dispatch({
-          type: GAME_ACTION_TYPES.OPEN_GAME,
-          payload: { deck },
-        })
+        if (
+          response.notification.request.content.categoryIdentifier ===
+          "newGameReady"
+        ) {
+          gameStore.dispatch({
+            type: GAME_ACTION_TYPES.OPEN_GAME,
+            payload: { deck: response.notification.request.content.data.deck },
+          })
+
+          if (response.actionIdentifier == "autostart") {
+            gameStore.dispatch({
+              type: GAME_ACTION_TYPES.START,
+              payload: {
+                deck_id:
+                  response.notification.request.content.data.deck?.deck_id,
+              },
+            })
+          }
+        }
 
         // Let React Navigation handle the URL
         listener(url)
