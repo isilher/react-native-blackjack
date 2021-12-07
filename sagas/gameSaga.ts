@@ -7,7 +7,6 @@ function* resetDeck(action: {
   type: typeof GAME_ACTION_TYPES.START
   payload: { deck_id: Deck["deck_id"] }
 }) {
-  console.log("🤔", action)
   try {
     // First, reshuffle the deck for a fresh game
     yield call(apiShuffleDeck, action.payload.deck_id)

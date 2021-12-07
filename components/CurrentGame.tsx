@@ -14,8 +14,6 @@ export const CurrentGame: React.FC<ICurrentGameProps> = () => {
 
   const deck = useSelector(selectDeck)
 
-  console.log("🎈", deck?.deck_id)
-
   const bust = gameState.playerScore > 21
 
   const closeGame = () => {

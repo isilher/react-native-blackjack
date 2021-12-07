@@ -48,7 +48,6 @@ export function gameReducer(
       }
     case GAME_ACTION_TYPES.DRAW_SUCCESS: {
       const { payload } = action as { payload: TDrawSuccessPayload }
-      console.log("☀️", payload)
       const newPlayerCards = [
         ...state.playerCards,
         ...(payload.playerCards ? payload.playerCards : []),
