@@ -13,7 +13,7 @@ export const DeckListItem: React.FC<{ deck: Deck }> = ({ deck }) => {
 
   const navigateToGame = () => {
     dispatch({ type: GAME_ACTION_TYPES.OPEN_GAME, payload: { deck } })
-    navigate("TabTwo", { screen: "GameScreen" })
+    navigate("Game")
   }
   return (
     <Pressable style={styles.container} onPress={navigateToGame}>

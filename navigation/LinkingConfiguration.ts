@@ -17,15 +17,16 @@ export default {
     screens: {
       Root: {
         screens: {
-          TabOne: {
+          Lobby: {
             screens: {
-              LobbyScreen: "one",
+              LobbyScreen: "lobby",
             },
           },
-          TabTwo: {
+          Game: {
             path: "gameTab",
             screens: {
-              GameScreen: "two",
+              GameScreen: "game",
+              AdvertScreen: "advert",
             },
           },
         },

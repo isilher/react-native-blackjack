@@ -7,19 +7,19 @@ import { GAME_ACTION_TYPES } from "./reducers/gameActions"
 
 export type RootStackParamList = {
   Root: undefined
-  NotFound: undefined
+  Advert: undefined
 }
 
 export type BottomTabParamList = {
-  TabOne: undefined
-  TabTwo: undefined
+  Lobby: undefined
+  Game: undefined
 }
 
-export type TabOneParamList = {
+export type LobbyParamList = {
   LobbyScreen: undefined
 }
 
-export type TabTwoParamList = {
+export type GameParamList = {
   GameScreen: undefined
 }
 

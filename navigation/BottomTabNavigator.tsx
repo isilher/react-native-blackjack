@@ -14,7 +14,7 @@ import { DeckProvider } from "../contexts/DeckContext"
 import useColorScheme from "../hooks/useColorScheme"
 import LobbyScreen from "../screens/LobbyScreen"
 import GameScreen from "../screens/GameScreen"
-import { BottomTabParamList, TabOneParamList, TabTwoParamList } from "../types"
+import { BottomTabParamList, LobbyParamList, GameParamList } from "../types"
 import { useSelector } from "react-redux"
 import { selectStarted } from "../reducers/gameReducer"
 
@@ -26,11 +26,11 @@ export default function BottomTabNavigator() {
 
   return (
     <BottomTab.Navigator
-      initialRouteName="TabOne"
+      initialRouteName="Lobby"
       tabBarOptions={{ activeTintColor: Colors[colorScheme].tint }}
     >
       <BottomTab.Screen
-        name="TabOne"
+        name="Lobby"
         component={LobbyNavigator}
         options={{
           tabBarIcon: ({ color }) => (
@@ -40,7 +40,7 @@ export default function BottomTabNavigator() {
         }}
       />
       <BottomTab.Screen
-        name="TabTwo"
+        name="Game"
         component={GameNavigator}
         options={{
           tabBarIcon: ({ color }) => (
@@ -64,7 +64,7 @@ function TabBarIcon(props: {
 
 // Each tab has its own navigation stack, you can read more about this pattern here:
 // https://reactnavigation.org/docs/tab-based-navigation#a-stack-navigator-for-each-tab
-const LobbyStack = createStackNavigator<TabOneParamList>()
+const LobbyStack = createStackNavigator<LobbyParamList>()
 
 function LobbyNavigator() {
   return (
@@ -83,15 +83,15 @@ function LobbyNavigator() {
   )
 }
 
-const GameStack = createStackNavigator<TabTwoParamList>()
+const GameStack = createStackNavigator<GameParamList>()
 
 function GameNavigator() {
   return (
-    <GameStack.Navigator>
+    <GameStack.Navigator screenOptions={{ headerShown: false }}>
       <GameStack.Screen
         name="GameScreen"
         component={GameScreen}
-        options={{ headerTitle: "Game" }}
+        options={{ headerTitle: "Game", headerShown: true }}
       />
     </GameStack.Navigator>
   )
